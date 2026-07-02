@@ -1,33 +1,3 @@
-# import streamlit as st
-
-# from database import (
-#     load_sensor_data,
-#     clear_database
-# )
-
-
-# def show_database():
-
-#     st.subheader("🗄 Stored Sensor Data")
-
-#     history = load_sensor_data()
-
-#     st.write(
-#         f"Total Stored Records: {len(history)}"
-#     )
-
-#     st.dataframe(
-#         history.tail(100)
-#     )
-
-#     if st.button(
-#         "🧹 Clear Database"
-#     ):
-#         clear_database()
-#         st.success(
-#             "Database cleared successfully."
-#         )
-#         st.rerun()
 
 import streamlit as st
 
@@ -71,7 +41,13 @@ def show_database():
         f"📊 Total Readings : {len(filtered)}"
     )
 
-    st.dataframe(filtered)
+    st.dataframe(
+        filtered.drop(
+            columns=["SimulationID"],
+            errors="ignore"
+        ),
+        use_container_width=True
+    )
 
     csv = filtered.to_csv(index=False).encode("utf-8")
 

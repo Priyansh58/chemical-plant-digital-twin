@@ -110,12 +110,27 @@ if "selectivity" not in st.session_state:
 if "residence_time" not in st.session_state:
     st.session_state.residence_time = None
 
-st.title("🧪 Chemical Plant Digital Twin")
-st.caption("Real-Time Process Monitoring | Digital Twin | Process Analytics")
+st.title("🏭 Chemical Plant Digital Twin")
 
+st.markdown("""
+### Real-Time Process Monitoring & Industrial Analytics
+
+This digital twin simulates real-time chemical plant operations including:
+
+- 🌡️ Heat Exchanger Monitoring
+- 🏭 Distillation Column Performance
+- ⚛️ Reactor Performance Analysis
+- 📈 Process Trend Visualization
+- 🗄️ Historical Process Data
+- 🚨 Intelligent Alarm Monitoring
+""")
+st.info(
+    "💡 Enter plant operating conditions from the sidebar and click **Run Simulation** to generate live process data."
+)
 st.divider()
-
-st.sidebar.title("⚙️ Control Panel")
+st.sidebar.success("🏭 Chemical Plant Control Panel")
+st.sidebar.caption("Digital Twin v1.1")
+st.sidebar.divider()
 st.sidebar.header("🏭 Plant Inputs")
 
 temperature = st.sidebar.number_input(
@@ -379,42 +394,42 @@ if calculate:
         reactor_volume,
         reactor_feed
     )
-col1, col2 = st.columns(2)
+
+st.subheader("📊 Plant Performance KPIs")
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     if st.session_state.efficiency is None:
-        st.metric("Efficiency", "--")
+        st.metric("⚙ Efficiency", "--")
     else:
         st.metric(
-            "Efficiency",
+            "⚙ Efficiency",
             f"{st.session_state.efficiency:.2f}%"
         )
 with col2:
     if st.session_state.energy is None:
-        st.metric("Energy Consumption", "--")
+        st.metric("⚡Energy Consumption", "--")
     else:
         st.metric(
-            "Energy Consumption",
+            "⚡Energy Consumption",
             f"{st.session_state.energy:.2f} kJ"
         )
 
-col3, col4 = st.columns(2)
-
 with col3:
     if st.session_state.heat_duty is None:
-        st.metric("Heat Duty", "--")
+        st.metric("🔥Heat Duty", "--")
     else:
         st.metric(
-            "Heat Duty",
-            f"{st.session_state.heat_duty:.2f} kJ/hr"
+            "🔥Heat Duty",
+            f"{st.session_state.heat_duty/1000:.2f} MJ/hr"
         )
 
 with col4:
     if st.session_state.cost is None:
-        st.metric("Operating Cost/hr", "--")
+        st.metric("💰Operating Cost/hr", "--")
     else:
         st.metric(
-            "Operating Cost/hr",
+            "💰Operating Cost/hr",
             f"{st.session_state.cost:.2f}/hr"
         )
 
@@ -451,14 +466,15 @@ else:
                 "Avg Flow Rate",
                 f"{avg_flow:.2f} kg/hr"
             )
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "📊 Graphs",
     "📋 Data",
     "📈 Statistics",
     "🗄 Database",
     "🔥 Heat Exchanger",
     "🏭 Distillation Column",
-    "⚛️ Reactor"
+    "⚛️ Reactor",
+    "ℹ️ About Project"
 ])
 
 with tab1:
@@ -517,7 +533,11 @@ else:
             st.warning(alert)
 
 
+st.divider()
 
+st.caption(
+    "Developed by Priyansh Khandwal | IIT Jodhpur | Chemical Engineering"
+)
 
 
 

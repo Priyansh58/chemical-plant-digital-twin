@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 def create_line_plot(df, x_column, y_column, title, y_label):
-    fig, ax = plt.subplots(figsize=(7,3.5))
+    fig, ax = plt.subplots(figsize=(8, 4))
 
     ax.plot(
         df[x_column],
@@ -14,6 +14,7 @@ def create_line_plot(df, x_column, y_column, title, y_label):
     ax.set_ylabel(y_label)
 
     ax.grid(True)
+    fig.tight_layout()
     # ax.legend()
 
     return fig
