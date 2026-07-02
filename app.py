@@ -1,7 +1,22 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-
+from ui.graphs_tab import show_graphs
+from ui.data_tab import show_data
+from ui.statistics_tab import show_statistics
+from ui.database_tab import show_database
+from ui.heat_exchanger_tab import show_heat_exchanger
+from database import (
+    create_database,
+    save_sensor_data,
+    load_sensor_data,
+    clear_database
+)
+from heat_exchanger import (
+    calculate_heat_transfer,
+    calculate_lmtd,
+    calculate_effectiveness
+)
 from calculations import (
     calculate_efficiency,
     calculate_heat_duty,
@@ -19,6 +34,7 @@ st.set_page_config(
     page_icon="🧪",
     layout="wide"
 )
+create_database()
 if "sensor_df" not in st.session_state:
     st.session_state.sensor_df = None
 
@@ -47,9 +63,24 @@ if "alerts" not in st.session_state:
     st.session_state.alerts = []
 if "efficiency" not in st.session_state:
     st.session_state.efficiency = None
-st.title("🧪 Chemical Plant Digital Twin")
+if "heat_transfer" not in st.session_state:
+    st.session_state.heat_transfer = None
 
-st.sidebar.header("Plant Inputs")
+if "lmtd" not in st.session_state:
+    st.session_state.lmtd = None
+
+if "effectiveness" not in st.session_state:
+    st.session_state.effectiveness = None
+
+
+
+st.title("🧪 Chemical Plant Digital Twin")
+st.caption("Real-Time Process Monitoring | Digital Twin | Process Analytics")
+
+st.divider()
+
+st.sidebar.title("⚙️ Control Panel")
+st.sidebar.header("🏭 Plant Inputs")
 
 temperature = st.sidebar.number_input(
     "Temperature (°C)",
@@ -70,6 +101,32 @@ reflux_ratio = st.sidebar.slider(
     10.0,
     2.5
 )
+
+st.sidebar.divider()
+
+st.sidebar.subheader("🔥 Heat Exchanger")
+hot_in = st.sidebar.number_input(
+    "Hot Inlet (°C)",
+    value=180.0
+)
+hot_out = st.sidebar.number_input(
+    "Hot Outlet (°C)",
+    value=120.0
+)
+
+cold_in = st.sidebar.number_input(
+    "Cold Inlet (°C)",
+    value=40.0
+)
+
+cold_out = st.sidebar.number_input(
+    "Cold Outlet (°C)",
+    value=90.0
+)
+
+st.sidebar.divider()
+
+st.sidebar.subheader("🚨 Alarm Settings")
 temp_limit = st.sidebar.slider(
     "Temperature Alarm",
     90,
@@ -82,12 +139,22 @@ pressure_limit = st.sidebar.slider(
     1100,
     1030
 )
+
+st.sidebar.divider()
+
+st.sidebar.subheader("📊 Dashboard Settings")
 rows_to_show = st.sidebar.selectbox(
     "Number of Readings",
     [20, 50, 100],
     index = 2
 )
-calculate = st.sidebar.button("Calculate")
+
+st.sidebar.divider()
+
+calculate = st.sidebar.button(
+    "▶ Run Simulation",
+    use_container_width=True
+)
 
 if calculate:
     
@@ -99,11 +166,13 @@ if calculate:
         80
     )
     st.session_state.sensor_df = calculate_sensor_parameters(st.session_state.sensor_df)
+    save_sensor_data(st.session_state.sensor_df)
     st.session_state.alerts = check_plant_status(
         st.session_state.sensor_df,
         temp_limit,
         pressure_limit
     )
+
         
     filtered_df = st.session_state.sensor_df.tail(rows_to_show)
     fig_temp = create_line_plot(
@@ -154,6 +223,28 @@ if calculate:
     st.session_state.cost = calculate_operating_cost(
         st.session_state.energy
     )
+
+
+    cp = 4.18  # Specific heat capacity of water in kJ/kg°C
+    st.session_state.heat_transfer = calculate_heat_transfer(
+        flow_rate,
+        cp,
+        hot_in,
+        hot_out
+    )
+
+    st.session_state.lmtd = calculate_lmtd(
+        hot_in,
+        hot_out,
+        cold_in,
+        cold_out
+    )
+
+    st.session_state.effectiveness = calculate_effectiveness(
+        hot_in,
+        hot_out,
+        cold_in
+    )
 col1, col2 = st.columns(2)
 
 with col1:
@@ -193,8 +284,9 @@ with col4:
             f"{st.session_state.cost:.2f}/hr"
         )
 
+
 st.subheader("📊 Plant Analytics")
-if st.session_state.sensor_df is None:
+if st.session_state.sensor_df is None: 
     st.info("Press Calculate to generate analytics.")
 else:
         avg_temp = st.session_state.sensor_df["Temperature"].mean()
@@ -225,66 +317,90 @@ else:
                 "Avg Flow Rate",
                 f"{avg_flow:.2f} kg/hr"
             )
-tab1, tab2, tab3 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Graphs",
     "📋 Data",
-    "📈 Statistics"
+    "📈 Statistics",
+    "🗄 Database",
+    "🔥 Heat Exchanger"
 ])
+
 with tab1:
-    st.subheader("📈 Live Process Trends")
-    st.divider()
-    if st.session_state.sensor_df is None:
-        st.info("👈 Press Calculate...")
-    else:
-        row1_col1, row1_col2 = st.columns(2)
-        with row1_col1:
-            st.pyplot(st.session_state.fig_temp)
-        with row1_col2:
-            st.pyplot(st.session_state.fig_pressure)
-        
-        row2_col1, row2_col2 = st.columns(2)
-        with row2_col1:
-            st.pyplot(st.session_state.fig_flow)
-        with row2_col2:
-            st.pyplot(st.session_state.fig_efficiency)
-        
+    show_graphs(
+        st.session_state.sensor_df,
+        st.session_state.fig_temp,
+        st.session_state.fig_pressure,
+        st.session_state.fig_flow,
+        st.session_state.fig_efficiency
+    )
+
+
+
+
+
 with tab2:
-    st.subheader("📋 Plant Sensor Data")
-    if st.session_state.sensor_df is None:
-        st.info("No sensor data available. Press Calculate.")
-    else:   
-        st.write(f"Total Sensor Readings: {len(st.session_state.sensor_df)}")
-        st.caption(f"Displaying {len(st.session_state.sensor_df)} simulated sensor readings.")
-        st.dataframe(
-            st.session_state.sensor_df.tail(rows_to_show).style.format({
-                "Temperature": "{:.2f}",
-                "Pressure": "{:.2f}",
-                "Flow Rate": "{:.2f}",
-                "Efficiency": "{:.2f}",
-                "Energy": "{:.2f}",
-                "Heat Duty": "{:.2f}",
-                "Operating Cost": "{:.2f}"
-            })
-        )   
-        csv = st.session_state.sensor_df.to_csv(index=False).encode("utf-8")
-        st.success("Download the latest plant data below.")
-        st.download_button(
-            label="📥 Download Sensor Data",
-            data=csv,
-            file_name="plant_sensor_data.csv",
-            mime="text/csv"
-        )
+    show_data(
+        st.session_state.sensor_df,
+        rows_to_show
+    )
+
+
 with tab3:
-    st.subheader("📈 Statistical Summary")
-    if st.session_state.sensor_df is None:
-        st.info("No statistics available yet.")
-    else:   
-        st.dataframe(
-            st.session_state.sensor_df.describe().style.format("{:.2f}")
-        )
+    show_statistics(st.session_state.sensor_df)
+
+
+
+with tab4:
+    show_database()
     
-        csv = st.session_state.sensor_df.to_csv(index=False).encode("utf-8")
-        
+# with tab5:
+#     st.header("🔥 Heat Exchanger Performance")
+#     if st.session_state.heat_transfer is None:
+#         st.info("👈 Press Calculate to run the Heat Exchanger simulation.")
+#     else:
+#         col1, col2, col3 = st.columns(3)
+
+#         with col1:
+#             st.metric(
+#             "Heat Transfer",
+#             f"{st.session_state.heat_transfer:.2f} kW"
+#         )
+#         with col2:
+#             st.metric(
+#             "LMTD",
+#             f"{st.session_state.lmtd:.2f} °C"
+#         )
+#         with col3:
+#             st.metric(
+#             "Effectiveness",
+#             f"{st.session_state.effectiveness*100:.2f}%"
+#         )
+            
+#         st.progress(min(st.session_state.effectiveness, 1.0))
+#         if st.session_state.effectiveness >0.8:
+#             st.success("🟢 Heat Exchanger Operating Efficiently")
+#         elif st.session_state.effectiveness > 0.6:
+#             st.warning("🟡 Heat Exchanger Efficiency Moderate")
+#         else:
+#             st.error("🔴 Heat Exchanger Efficiency Low")
+#     # st.subheader("Performance Status")
+#     # st.subheader("Heat Exchanger Effectiveness")
+
+#         st.subheader("Engineering Interpretation")
+#         st.write(f"""
+#         • Heat transferred : **{st.session_state.heat_transfer:.2f} kW**
+
+#         • Log Mean Temperature Difference : **{st.session_state.lmtd:.2f} °C**
+
+#         • Heat Exchanger Effectiveness : **{st.session_state.effectiveness*100:.2f}%**
+#         """ )
+    
+with tab5:
+    show_heat_exchanger(
+        st.session_state.heat_transfer,
+        st.session_state.lmtd,
+        st.session_state.effectiveness
+    )
           
 st.subheader("Plant Status")
 if len(st.session_state.alerts) == 0:
