@@ -6,6 +6,20 @@ from ui.data_tab import show_data
 from ui.statistics_tab import show_statistics
 from ui.database_tab import show_database
 from ui.heat_exchanger_tab import show_heat_exchanger
+from ui.distillation_tab import show_distillation
+from ui.reactor_tab import show_reactor
+from reactor import (
+    calculate_conversion,
+    calculate_yield,
+    calculate_selectivity,
+    calculate_residence_time
+)
+from distillation import (
+    calculate_bottom_product,
+    calculate_recovery,
+    calculate_separation_efficiency,
+    calculate_reflux_ratio
+)
 from database import (
     create_database,
     save_sensor_data,
@@ -72,7 +86,29 @@ if "lmtd" not in st.session_state:
 if "effectiveness" not in st.session_state:
     st.session_state.effectiveness = None
 
+if "bottom_product" not in st.session_state:
+    st.session_state.bottom_product = None
 
+if "recovery" not in st.session_state:
+    st.session_state.recovery = None
+
+if "separation_efficiency" not in st.session_state:
+    st.session_state.separation_efficiency = None
+
+if "reflux_ratio_calc" not in st.session_state:
+    st.session_state.reflux_ratio_calc = None
+
+if "conversion" not in st.session_state:
+    st.session_state.conversion = None
+
+if "yield_value" not in st.session_state:
+    st.session_state.yield_value = None
+
+if "selectivity" not in st.session_state:
+    st.session_state.selectivity = None
+
+if "residence_time" not in st.session_state:
+    st.session_state.residence_time = None
 
 st.title("🧪 Chemical Plant Digital Twin")
 st.caption("Real-Time Process Monitoring | Digital Twin | Process Analytics")
@@ -125,6 +161,69 @@ cold_out = st.sidebar.number_input(
 )
 
 st.sidebar.divider()
+
+st.sidebar.subheader("🏭 Distillation Column")
+
+feed_flow = st.sidebar.number_input(
+    "Feed Flow (kg/hr)",
+    value=1000.0
+)
+
+distillate_flow = st.sidebar.number_input(
+    "Distillate Flow (kg/hr)",
+    value=400.0
+)
+
+reflux_flow = st.sidebar.number_input(
+    "Reflux Flow (kg/hr)",
+    value=600.0
+)
+
+top_purity = st.sidebar.slider(
+    "Top Product Purity (%)",
+    80,
+    100,
+    95
+)
+
+bottom_purity = st.sidebar.slider(
+    "Bottom Product Purity (%)",
+    80,
+    100,
+    94
+)
+st.sidebar.divider()
+
+st.sidebar.subheader("⚛️ Reactor")
+
+reactor_feed = st.sidebar.number_input(
+    "Feed (kg/hr)",
+    value=500.0
+)
+
+reactor_product = st.sidebar.number_input(
+    "Product (kg/hr)",
+    value=420.0
+)
+
+theoretical_product = st.sidebar.number_input(
+    "Theoretical Product (kg/hr)",
+    value=450.0
+)
+
+undesired_product = st.sidebar.number_input(
+    "Undesired Product (kg/hr)",
+    value=30.0
+)
+
+reactor_volume = st.sidebar.number_input(
+    "Reactor Volume (m³)",
+    value=20.0
+)
+
+
+st.sidebar.divider()
+
 
 st.sidebar.subheader("🚨 Alarm Settings")
 temp_limit = st.sidebar.slider(
@@ -224,7 +323,22 @@ if calculate:
         st.session_state.energy
     )
 
-
+    st.session_state.bottom_product = calculate_bottom_product(
+        feed_flow,
+        distillate_flow
+    )
+    st.session_state.recovery = calculate_recovery(
+        feed_flow,
+        distillate_flow
+    )   
+    st.session_state.separation_efficiency = calculate_separation_efficiency(
+        top_purity,
+        bottom_purity
+    )
+    st.session_state.reflux_ratio_calc = calculate_reflux_ratio(
+        reflux_flow,
+        distillate_flow
+    )
     cp = 4.18  # Specific heat capacity of water in kJ/kg°C
     st.session_state.heat_transfer = calculate_heat_transfer(
         flow_rate,
@@ -244,6 +358,26 @@ if calculate:
         hot_in,
         hot_out,
         cold_in
+    )
+
+    st.session_state.conversion = calculate_conversion(
+        reactor_feed,
+        reactor_product
+    )
+
+    st.session_state.yield_value = calculate_yield(
+        reactor_product,
+        theoretical_product
+    )
+
+    st.session_state.selectivity = calculate_selectivity(
+        reactor_product,
+        undesired_product
+    )
+
+    st.session_state.residence_time = calculate_residence_time(
+        reactor_volume,
+        reactor_feed
     )
 col1, col2 = st.columns(2)
 
@@ -317,12 +451,14 @@ else:
                 "Avg Flow Rate",
                 f"{avg_flow:.2f} kg/hr"
             )
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📊 Graphs",
     "📋 Data",
     "📈 Statistics",
     "🗄 Database",
-    "🔥 Heat Exchanger"
+    "🔥 Heat Exchanger",
+    "🏭 Distillation Column",
+    "⚛️ Reactor"
 ])
 
 with tab1:
@@ -333,10 +469,6 @@ with tab1:
         st.session_state.fig_flow,
         st.session_state.fig_efficiency
     )
-
-
-
-
 
 with tab2:
     show_data(
@@ -352,56 +484,30 @@ with tab3:
 
 with tab4:
     show_database()
-    
-# with tab5:
-#     st.header("🔥 Heat Exchanger Performance")
-#     if st.session_state.heat_transfer is None:
-#         st.info("👈 Press Calculate to run the Heat Exchanger simulation.")
-#     else:
-#         col1, col2, col3 = st.columns(3)
-
-#         with col1:
-#             st.metric(
-#             "Heat Transfer",
-#             f"{st.session_state.heat_transfer:.2f} kW"
-#         )
-#         with col2:
-#             st.metric(
-#             "LMTD",
-#             f"{st.session_state.lmtd:.2f} °C"
-#         )
-#         with col3:
-#             st.metric(
-#             "Effectiveness",
-#             f"{st.session_state.effectiveness*100:.2f}%"
-#         )
-            
-#         st.progress(min(st.session_state.effectiveness, 1.0))
-#         if st.session_state.effectiveness >0.8:
-#             st.success("🟢 Heat Exchanger Operating Efficiently")
-#         elif st.session_state.effectiveness > 0.6:
-#             st.warning("🟡 Heat Exchanger Efficiency Moderate")
-#         else:
-#             st.error("🔴 Heat Exchanger Efficiency Low")
-#     # st.subheader("Performance Status")
-#     # st.subheader("Heat Exchanger Effectiveness")
-
-#         st.subheader("Engineering Interpretation")
-#         st.write(f"""
-#         • Heat transferred : **{st.session_state.heat_transfer:.2f} kW**
-
-#         • Log Mean Temperature Difference : **{st.session_state.lmtd:.2f} °C**
-
-#         • Heat Exchanger Effectiveness : **{st.session_state.effectiveness*100:.2f}%**
-#         """ )
-    
+      
 with tab5:
     show_heat_exchanger(
         st.session_state.heat_transfer,
         st.session_state.lmtd,
         st.session_state.effectiveness
     )
-          
+
+with tab6:
+    show_distillation(
+        st.session_state.bottom_product,
+        st.session_state.recovery,
+        st.session_state.separation_efficiency,
+        st.session_state.reflux_ratio_calc
+    )
+
+with tab7:
+    show_reactor(
+        st.session_state.conversion,
+        st.session_state.yield_value,
+        st.session_state.selectivity,
+        st.session_state.residence_time
+    )
+
 st.subheader("Plant Status")
 if len(st.session_state.alerts) == 0:
         st.success("🟢 Plant Operating Normally")
