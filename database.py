@@ -1,13 +1,14 @@
 import sqlite3
 import pandas as pd
 from datetime import datetime
+import uuid
 def create_database():
     conn = sqlite3.connect("plant_data.db")
 
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS sensor_data(
-            "Simulation ID" TEXT,
+            SimulationID TEXT,
             Timestamp TEXT,
             Time INTEGER,
             Temperature REAL,
@@ -25,8 +26,13 @@ def create_database():
     conn.close()
 def save_sensor_data(df):
     conn = sqlite3.connect("plant_data.db")
-    df["Timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    df["Simulation ID"] = datetime.now().strftime("%Y%m%d%H%M%S")
+    simulation_id = str(uuid.uuid4())[:8]
+    timestamp = datetime.now().strftime(
+        "%d-%m-%Y %H:%M:%S"
+    )
+    df["SimulationID"] = simulation_id
+    df["Timestamp"] = timestamp
+    
     df.to_sql(
         "sensor_data",
         conn,
